@@ -2115,7 +2115,7 @@ summary(final_model)                                                   # show re
 <pre class="r"><code>fixef(final_model)                                                     # extract fixed effects only</code></pre>
 <pre><code>##  (Intercept)       height pftevergreen 
 ##    0.1241793    0.0513392    0.3623146</code></pre>
-<pre class="r"><code># Explanation:
+<pre class="r"><code># Interpretation of fixed effects:
 #   
 # Intercept (0.124)
 # This is the baseline growth rate (in mm/year) for the reference group (deciduous species) when tree height = 0.
@@ -2137,6 +2137,42 @@ summary(final_model)                                                   # show re
 # Evergreen species:
 #   Growth = (0.124 + 0.362) + 0.051 × Height
 # Growth = 0.486 + 0.051 × Height</code></pre>
+
+<pre class="r"><code>ranef(final_model)                                       # extract random effects only</code></pre>
+<pre><code>## $sp
+##      (Intercept)       height
+## sp01 -0.01564030 -0.012968867
+## sp02  0.02179330  0.023128275
+## sp03  0.07673630  0.039909255
+## sp04  0.14020490 -0.017147029
+## sp05 -0.21427916 -0.007292709
+## sp06  0.08649606  0.036282413
+## sp07 -0.11122789 -0.017932154
+## sp08  0.24076283 -0.019122809
+## sp09 -0.29214778 -0.012231066
+## sp10  0.06730175 -0.012625309
+## with conditional variances for “sp” 
+</code></pre>
+<pre class="r"><code>
+# Interpretation of species-level random effects:
+# Each row shows species-specific deviations (BLUPs) from the population fixed effects:
+#   (Intercept): -> how the baseline (at Height = 0) for species s differs from the global intercept
+#   height    :  -> how the Height slope for species s differs from the global height slope
+# Positive values = above-average (higher intercept or steeper slope); negative = below-average.
+# If your model includes pftevergreen as a fixed effect, it shifts the INTERCEPT only (no pft:height term),
+# so random slope differences are unrelated to PFT unless you add that interaction.
+# Quick read of the output:
+# sp01:  intercept -0.0156 (slightly lower baseline), slope -0.0130 (slightly flatter than average)
+# sp02:  intercept +0.0218 (slightly higher baseline), slope +0.0231 (steeper than average)
+# sp03:  intercept +0.0767 (higher baseline),        slope +0.0399 (notably steeper than average)
+# sp04:  intercept +0.1402 (higher baseline),        slope -0.0171 (somewhat flatter)
+# sp05:  intercept -0.2143 (much lower baseline),    slope -0.0073 (slightly flatter)
+# sp06:  intercept +0.0865 (higher baseline),        slope +0.0363 (steeper than average)
+# sp07:  intercept -0.1112 (lower baseline),         slope -0.0179 (flatter)
+# sp08:  intercept +0.2408 (highest baseline),       slope -0.0191 (flatter; height effect reduced)
+# sp09:  intercept -0.2921 (lowest baseline),        slope -0.0122 (slightly flatter)
+# sp10:  intercept +0.0673 (slightly higher),        slope -0.0126 (slightly flatter)
+</code>
 <hr />
 </div>
 <div id="model-diagnostics" class="section level2">

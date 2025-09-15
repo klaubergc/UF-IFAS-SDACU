@@ -241,7 +241,7 @@ ranef(final_model)                                                     # extract
 # If your model includes pftevergreen as a fixed effect, it shifts the INTERCEPT only (no pft:height term),
 # so random slope differences are unrelated to PFT unless you add that interaction.
 
-# Quick read of your output:
+# Quick read of the output:
 # sp01:  intercept -0.0156 (slightly lower baseline), slope -0.0130 (slightly flatter than average)
 # sp02:  intercept +0.0218 (slightly higher baseline), slope +0.0231 (steeper than average)
 # sp03:  intercept +0.0767 (higher baseline),        slope +0.0399 (notably steeper than average)
