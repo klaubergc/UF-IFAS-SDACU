@@ -50,8 +50,10 @@ if (any(!installed)) {
 }
 
 # Load all libraries
-lapply(required_packages, library, character.only = TRUE)
-
+for (pkg in required_packages) {
+  print(pkg)
+  library(pkg, character.only = TRUE)
+}
 
 ###############################################################
 # 2) Import and Explore the Data
@@ -60,7 +62,7 @@ lapply(required_packages, library, character.only = TRUE)
 # Read the dataset from a CSV file
 # sep = ";"   → because the file is semicolon-delimited
 # header = TRUE → first row contains column names
-dataset <- read.table("U:\\06_Carine\\04_Statistics\\05_Workshop\\script_R\\tree_dataset.csv", 
+dataset <- read.table("S:\\06_Carine\\04_Statistics\\00_SDACU\\02_workshop\\01_data\\tree_dataset.csv", 
                       sep = ";", header = TRUE)
 
 
@@ -124,36 +126,6 @@ p4 <- ggplot(dataset, aes(x = height, y = growth, color = sp)) +
 
 # Combine diagnostic plots in a 2x2 grid
 (p1 | p2) / (p3 | p4) #
-
-###############################################################
-# 2) Baseline Linear Model (No Random Effects)
-###############################################################
-
-# Step 0: Simple linear regression model (fixed effects only)
-# This ignores the species grouping structure.
-# It assumes all observations are independent, which is not true.
-# -> Risk: underestimates standard errors and inflates Type I error.
-lm_fixed <- lm(growth ~ height + pft, data = dataset)
-summary(lm_fixed)
-
-head(dataset)
-dataset$pft<-as.factor(dataset$pft)
-model <- lm(growth ~ pft, data = dataset)
-summary(model)
-
-library(ggplot2)
-ggplot(dataset, aes(x = pft, y = growth)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.2, alpha = 0.5) +
-  ylab("Growth (mm/year)") +
-  xlab("Leaf Type")
-plot(model)
-
-
-# Note:
-# lm_fixed gives us a baseline, but it does not account for
-# species-level variation. We need mixed models to properly handle
-# the hierarchical structure (trees nested within species).
 
 ###############################################################
 # 3) Linear Mixed-Effects Model Selection
@@ -235,8 +207,9 @@ anova(lmm_no_interaction, lmm_no_height)                              # compare 
 final_model <- lmm_no_interaction                                      # assign the selected best model
 summary(final_model)                                                   # show results (coefficients, SE, p-values)
 fixef(final_model)                                                     # extract fixed effects only
+ranef(final_model)                                                     # extract random effects only
 
-# Explanation:
+# Interpretation of fixed effects:
 #   
 # Intercept (0.124)
 # This is the baseline growth rate (in mm/year) for the reference group (deciduous species) when tree height = 0.
@@ -259,8 +232,30 @@ fixef(final_model)                                                     # extract
 #   Growth = (0.124 + 0.362) + 0.051 × Height
 # Growth = 0.486 + 0.051 × Height
 
+# Interpretation of species-level random effects:
+
+# Each row shows species-specific deviations (BLUPs) from the population fixed effects:
+#   (Intercept): -> how the baseline (at Height = 0) for species s differs from the global intercept
+#   height    :  -> how the Height slope for species s differs from the global height slope
+# Positive values = above-average (higher intercept or steeper slope); negative = below-average.
+# If your model includes pftevergreen as a fixed effect, it shifts the INTERCEPT only (no pft:height term),
+# so random slope differences are unrelated to PFT unless you add that interaction.
+
+# Quick read of your output:
+# sp01:  intercept -0.0156 (slightly lower baseline), slope -0.0130 (slightly flatter than average)
+# sp02:  intercept +0.0218 (slightly higher baseline), slope +0.0231 (steeper than average)
+# sp03:  intercept +0.0767 (higher baseline),        slope +0.0399 (notably steeper than average)
+# sp04:  intercept +0.1402 (higher baseline),        slope -0.0171 (somewhat flatter)
+# sp05:  intercept -0.2143 (much lower baseline),    slope -0.0073 (slightly flatter)
+# sp06:  intercept +0.0865 (higher baseline),        slope +0.0363 (steeper than average)
+# sp07:  intercept -0.1112 (lower baseline),         slope -0.0179 (flatter)
+# sp08:  intercept +0.2408 (highest baseline),       slope -0.0191 (flatter; height effect reduced)
+# sp09:  intercept -0.2921 (lowest baseline),        slope -0.0122 (slightly flatter)
+# sp10:  intercept +0.0673 (slightly higher),        slope -0.0126 (slightly flatter)
+
+
 ###############################################################
-# 4) Model Diagnostics
+# 3) Model Diagnostics
 ###############################################################
 
 # Extract residuals (observed - fitted values)
@@ -352,7 +347,7 @@ p6 <- ggplot(residual_df, aes(x = Residuals)) +
 
 
 ###############################################################
-# 5) Visualization of Predictions (with equations)
+# 4) Visualization of Predictions (with equations)
 ###############################################################
 
 # Predictions from the final model
@@ -369,13 +364,13 @@ p4<-ggplot() +
             aes(x = height, y = pred_full, group = sp,  # predictions vary by species (grouped)
                 color = sp,                             # color lines by species
                 linetype = "Mixed (Fixed + Random)"),   # labeled in legend
-            size = 0.8) +                               # thinner line for mixed effects
+            linewidth = 0.8) +                               # thinner line for mixed effects
   
   geom_line(data = dataset,                             # plot fixed-effects predictions
             aes(x = height, y = pred_fixed, group = pft,# predictions by plant functional type (pft)
                 color = pft,                            # color lines by deciduous/evergreen
                 linetype = "Fixed Only"),               # labeled in legend
-            size = 1.3) +                               # thicker line for fixed effects
+            linewidth = 1.3) +                               # thicker line for fixed effects
   
   scale_linetype_manual(values = c("Fixed Only" = "solid", 
                                    "Mixed (Fixed + Random)" = "dashed")) + # define line styles
@@ -408,16 +403,11 @@ print(p4) # plot the graphic
 
 
 ###############################################################
-# END of Workshop Script
 # Key Takeaways:
 #
 # - Linear Mixed-Effects Models (LMMs) handle hierarchical data:
 #   Useful when data are grouped (e.g., trees within species, plots, or sites),
 #   capturing both fixed effects (population-level) and random effects (group-level).
-#
-# - Fixed-effect models (LM) ignore grouping structure:
-#   They assume all observations are independent, which can underestimate
-#   variability and inflate Type I error rates.
 #
 # - Model selection is based on ANOVA comparisons:
 #   Allows testing which fixed and random effects improve the model.
